@@ -38,4 +38,6 @@ class MultiDatasetTradingEnvFixed(TradingEnv):
                 self.next_dataset()
             )
         if self.verbose > 1: print(f"Selected dataset {self.name} ...")
-        return super().reset(seed)
+        observation, info = super().reset(seed)
+        return observation, info
+           

@@ -7,3 +7,4 @@ gym-trading-env==0.3.3
 pyqlearning==1.2.7
 matplotlib==3.9.2
 stable-baselines3==2.4.0
+tensorboard==2.18.0
