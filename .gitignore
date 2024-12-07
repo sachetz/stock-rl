@@ -167,3 +167,5 @@ data/
 new_project_venv/
 dqn_trading_model.zip
 dqn_trading_tensorboard/
+ppo_trading_tensorboard/
+*.zip
