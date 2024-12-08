@@ -7,24 +7,93 @@ from stable_baselines3 import DQN
 from gym_trading_env.downloader import download
 import matplotlib.pyplot as plt
 
-# Download and load data
-# download(exchange_names=["bitfinex2"],
-#          symbols=["BTC/USDT", "ETH/USDT"],
-#          timeframe="1h",
-#          dir="data",
-#          since=datetime.datetime(year=2020, month=1, day=1))
+# df = pd.read_pickle("./data/data_crypto/bitfinex2-BTCUSDT-1h.pkl")
+# print (df.head(5))
+# print (df.columns)
+# exit(0)
 
-df = pd.read_pickle("./data/bitfinex2-BTCUSDT-1h.pkl")
+df = pd.read_pickle("./data/yahoo-NVDA-1d.pkl")
+
+df.columns = df.columns.droplevel(1)
+df.columns.name = None  # Remove the index name 'Price'
+df.drop(columns='Adj Close', inplace=True)
+df.index.name = 'date_open'
+df['date_close'] = df.index
+df = df[['open', 'high', 'low', 'close', 'volume', 'date_close']]
+
+# print (df.head(5))
+# print (df.columns)
+# exit(0)
 
 # Preprocess function
 def preprocess(df: pd.DataFrame):
+    # Ensure the data is sorted by date
+    df = df.sort_index()
+    
+    # Feature Engineering
+    # 1. Price Change (Feature Close)
     df["feature_close"] = df["close"].pct_change()
-    df["feature_open"] = df["open"]/df["close"]
-    df["feature_high"] = df["high"]/df["close"]
-    df["feature_low"] = df["low"]/df["close"]
-    df["feature_volume"] = df["volume"] / df["volume"].rolling(7*24).max()
+    
+    # 2. Price Ratios
+    df["feature_open"] = df["open"] / df["close"]
+    df["feature_high"] = df["high"] / df["close"]
+    df["feature_low"] = df["low"] / df["close"]
+    
+    # 3. Normalized Volume
+    # df["feature_volume"] = df["volume"] / df["volume"].rolling(window=7*24).max()
+    
+    # Use below if doing daily stocks instead of hourly crypto
+    df["feature_volume"] = df["volume"] / df["volume"].rolling(window=7).max()  # CHANGED
+
+    
+    # 4. Simple Moving Averages (SMA)
+    df["SMA_5"] = df["close"].rolling(window=5).mean() / df["close"]
+    df["SMA_10"] = df["close"].rolling(window=10).mean() / df["close"]
+    df["SMA_20"] = df["close"].rolling(window=20).mean() / df["close"]
+    
+    # 5. Exponential Moving Averages (EMA)
+    df["EMA_5"] = df["close"].ewm(span=5, adjust=False).mean() / df["close"]
+    df["EMA_10"] = df["close"].ewm(span=10, adjust=False).mean() / df["close"]
+    df["EMA_20"] = df["close"].ewm(span=20, adjust=False).mean() / df["close"]
+    
+    # 6. Relative Strength Index (RSI)
+    delta = df["close"].diff()
+    gain = (delta.where(delta > 0, 0)).fillna(0)
+    loss = (-delta.where(delta < 0, 0)).fillna(0)
+    average_gain = gain.rolling(window=14).mean()
+    average_loss = loss.rolling(window=14).mean()
+    rs = average_gain / average_loss
+    df["RSI_14"] = 100 - (100 / (1 + rs))
+    df["RSI_14"] = df["RSI_14"] / 100  # Normalize RSI to 0-1 scale
+    
+    # 7. Moving Average Convergence Divergence (MACD)
+    ema_12 = df["close"].ewm(span=12, adjust=False).mean()
+    ema_26 = df["close"].ewm(span=26, adjust=False).mean()
+    df["MACD"] = (ema_12 - ema_26) / df["close"]
+    
+    # # 8. Bollinger Bands
+    # df["BB_Middle"] = df["close"].rolling(window=20).mean()
+    # df["BB_Std"] = df["close"].rolling(window=20).std()
+    # df["BB_Upper"] = (df["BB_Middle"] + 2 * df["BB_Std"]) / df["close"]
+    # df["BB_Lower"] = (df["BB_Middle"] - 2 * df["BB_Std"]) / df["close"]
+    
+    # # 9. Average True Range (ATR)
+    # high_low = df["high"] - df["low"]
+    # high_close = (df["high"] - df["close"].shift()).abs()
+    # low_close = (df["low"] - df["close"].shift()).abs()
+    # true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+    # df["ATR_14"] = true_range.rolling(window=14).mean() / df["close"]
+    
+    # # 10. On-Balance Volume (OBV)
+    # df["OBV"] = (np.sign(df["close"].diff()) * df["volume"]).fillna(0).cumsum()
+    # df["OBV"] = df["OBV"] / df["OBV"].abs().max()  # Normalize OBV
+    
+    # Drop rows with NaN values
     df.dropna(inplace=True)
+    
+    # Return the DataFrame
     return df
+
 
 # Dynamic feature functions
 def dynamic_feature_last_position_taken(history):
@@ -66,13 +135,11 @@ model.save("dqn_trading_model")
 
 # Test the trained agent
 obs, info = env.reset()
-print (obs)
 portfolio_values = []
 
 for _ in range(1000):
     action, _states = model.predict(obs, deterministic=True)
     obs, reward, done, truncated, info = env.step(action)
-    print (obs, reward, done, truncated, info)
     portfolio_values.append(info['portfolio_valuation'])
     if done or truncated:
         obs, info = env.reset()
