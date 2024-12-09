@@ -12,14 +12,7 @@ import matplotlib.pyplot as plt
 # print (df.columns)
 # exit(0)
 
-df = pd.read_pickle("./data/yahoo-NVDA-1d.pkl")
-
-df.columns = df.columns.droplevel(1)
-df.columns.name = None  # Remove the index name 'Price'
-df.drop(columns='Adj Close', inplace=True)
-df.index.name = 'date_open'
-df['date_close'] = df.index
-df = df[['open', 'high', 'low', 'close', 'volume', 'date_close']]
+# df = pd.read_pickle("./data/yahoo-NVDA-1d.pkl")
 
 # print (df.head(5))
 # print (df.columns)
@@ -27,6 +20,13 @@ df = df[['open', 'high', 'low', 'close', 'volume', 'date_close']]
 
 # Preprocess function
 def preprocess(df: pd.DataFrame):
+    df.columns = df.columns.droplevel(1)
+    df.columns.name = None  # Remove the index name 'Price'
+    df.drop(columns='Adj Close', inplace=True)
+    df.index.name = 'date_open'
+    df['date_close'] = df.index
+    df = df[['open', 'high', 'low', 'close', 'volume', 'date_close']]
+
     # Ensure the data is sorted by date
     df = df.sort_index()
     
