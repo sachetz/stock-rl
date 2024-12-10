@@ -3,6 +3,7 @@ import numpy as np
 import datetime
 import yfinance as yf
 import os
+from gym_trading_env.downloader import download
 
 # Ensure the data directory exists
 os.makedirs("data", exist_ok=True)
@@ -14,7 +15,7 @@ os.makedirs("data", exist_ok=True)
 #          dir="data",
 #          since=datetime.datetime(year=2020, month=1, day=1))
 
-symbols = ["AAPL", "NVDA", "MSFT"]
+symbols = ["AAPL", "NVDA", "MSFT", "XOM", "SHEL"]
 start_date = datetime.datetime(year=2020, month=1, day=1)
 end_date = datetime.datetime(year=2024, month=12, day=2)
 
