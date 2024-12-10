@@ -121,7 +121,7 @@ def main():
     #          dir="data",
     #          since=datetime.datetime(year=2020, month=1, day=1))
 
-    df = pd.read_pickle("./data/bitfinex2-BTCUSDT-1h.pkl")
+    # df = pd.read_pickle("./data/bitfinex2-BTCUSDT-1h.pkl")
 
 
     # Number of parallel environments
@@ -146,7 +146,8 @@ def main():
         gamma=0.99,
         gae_lambda=0.95,
         clip_range=0.2,
-        ent_coef=0.0
+        ent_coef=0.0,
+        device='cpu'
     )
 
     # Train the agent
@@ -161,13 +162,13 @@ def main():
     # Create a single environment for testing
     test_env = make_env()
     obs, info = test_env.reset()
-    print(obs)
+    # print(obs)
     portfolio_values = []
 
     for step in range(1000):
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, truncated, info = test_env.step(action)
-        print(obs, reward, done, truncated, info)
+        # print(obs, reward, done, truncated, info)
         portfolio_values.append(info.get('portfolio_valuation', 0))
         if done or truncated:
             obs, info = test_env.reset()
